@@ -4,7 +4,7 @@
 #include <linux/device.h>
 #include <linux/fs.h>
 
-struct data {
+static struct data {
     int length;
     char *data;
 };
@@ -13,27 +13,23 @@ struct data {
 #define PUSH_DATA __IOW('a', 'b', struct data * )
 #define POP_DATA _IOR('a', 'c', struct data * )
 
-int  c_dev_open(struct inode *, struct file *);
-int c_dev_release(struct inode *, struct file *);
-int c_dev_ioctl(struct file *, unsigned int, unsigned long);
+static int major_number;
 
-int major_number;
-
-struct circuler_queue{
+static struct circuler_queue{
     int front, rear,size, capacity;
     struct data *buffer;
 };
 
-int c_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg){
+static long int c_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg){
     return 0;
 }
 
-int c_dev_open(struct inode *inode, struct file *file){
+static int c_dev_open(struct inode *inode, struct file *file){
     pr_info("file open\n");
     return 0;
 }
 
-int c_dev_release(struct inode *inode, struct file *file){
+static int c_dev_release(struct inode *inode, struct file *file){
     pr_info("file release\n");
     return 0;
 }
