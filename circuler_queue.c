@@ -43,7 +43,7 @@ static long int c_dev_ioctl(struct file *file, unsigned int cmd, unsigned long a
             pr_info("overflow\n");
             return -1;
         }
-        
+
         pr_info("push data.\n");
         if(copy_from_user(&user_queue_data, (struct data *)arg, sizeof(struct data))){
             pr_info("error occure\n");
@@ -54,7 +54,7 @@ static long int c_dev_ioctl(struct file *file, unsigned int cmd, unsigned long a
         kernel_queue_data.data = kmalloc(kernel_queue_data.length, GFP_KERNEL);
 
         // copy data from user mode *data
-        if(copy_from_user(kernel_queue_data.data, user_queue_data.data, sizeof(struct data))){
+        if(copy_from_user(kernel_queue_data.data, user_queue_data.data, kernel_queue_data.length)){
             pr_info("error occure\n");
             return -1;
         }
@@ -66,6 +66,29 @@ static long int c_dev_ioctl(struct file *file, unsigned int cmd, unsigned long a
         break;
 
     case POP_DATA:
+
+        if(queue.size <= 0){
+            pr_info("underflow\n");
+            return -1;
+        }
+
+        pr_info("pop data.\n");
+
+        struct data content = *(queue.buffer + queue.front);
+
+        if(copy_from_user(&user_queue_data, (struct data *)arg, sizeof(struct data))){
+            pr_info("error occure\n");
+            return -1;
+        }
+        // copy data into user space * data.
+        if(copy_to_user(user_queue_data.data, content.data, user_queue_data.length)){
+            pr_info("error occure\n");
+            return -1;
+        }
+
+        queue.front = (queue.front + 1) % queue.capacity;
+        queue.size -= 1;
+        pr_info("push_done front = %d, rear = %d, size = %d\n", queue.front, queue.rear, queue.size);
         break;
 
     default:
