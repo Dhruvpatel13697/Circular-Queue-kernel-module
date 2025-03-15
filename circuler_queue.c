@@ -9,9 +9,9 @@ static struct data {
     char *data;
 };
 
-#define SET_SIZE_OF_QUEUE __IOW('a', 'a', int * )
-#define PUSH_DATA __IOW('a', 'b', struct data * )
-#define POP_DATA _IOR('a', 'c', struct data * )
+#define SET_SIZE_OF_QUEUE _IOW('a', 'a', int *)
+#define PUSH_DATA _IOW('a', 'b', struct data *)
+#define POP_DATA _IOR('a', 'c', struct data *)
 
 static int major_number;
 
@@ -20,7 +20,34 @@ static struct circuler_queue{
     struct data *buffer;
 };
 
+static struct circuler_queue queue;
+
 static long int c_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg){
+
+    struct data queue_data;
+    switch (cmd)
+    {
+    case SET_SIZE_OF_QUEUE:
+        if(copy_from_user(&queue.capacity, (int *)arg, sizeof(int))){
+            pr_info("error occure\n");
+            return -1;
+        }
+        queue.buffer = kmalloc(queue.capacity* sizeof(struct data), GFP_KERNEL);
+        pr_info("set size %d\n", queue.capacity);
+        queue.front = queue.rear = queue.size = 0;
+        break;
+
+    case PUSH_DATA:
+       
+        break;
+
+    case POP_DATA:
+        break;
+
+    default:
+        break;
+    }
+
     return 0;
 }
 
