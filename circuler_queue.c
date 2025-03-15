@@ -14,6 +14,7 @@ static struct data {
 #define POP_DATA _IOR('a', 'c', struct data *)
 
 static int major_number;
+static spinlock_t lock;
 
 static struct circuler_queue{
     int front, rear,size, capacity;
@@ -26,11 +27,14 @@ static long int c_dev_ioctl(struct file *file, unsigned int cmd, unsigned long a
 
     struct data user_queue_data, kernel_queue_data;
 
+    spin_lock(&lock);
+
     switch (cmd)
     {
     case SET_SIZE_OF_QUEUE:
         if(copy_from_user(&queue.capacity, (int *)arg, sizeof(int))){
             pr_info("error occure\n");
+            spin_unlock(&lock);
             return -1;
         }
         queue.buffer = kmalloc(queue.capacity* sizeof(struct data), GFP_KERNEL);
@@ -41,12 +45,14 @@ static long int c_dev_ioctl(struct file *file, unsigned int cmd, unsigned long a
     case PUSH_DATA:
         if(queue.size >= queue.capacity){
             pr_info("overflow\n");
+            spin_unlock(&lock);
             return -1;
         }
 
         pr_info("push data.\n");
         if(copy_from_user(&user_queue_data, (struct data *)arg, sizeof(struct data))){
             pr_info("error occure\n");
+            spin_unlock(&lock);
             return -1;
         }
         
@@ -56,6 +62,7 @@ static long int c_dev_ioctl(struct file *file, unsigned int cmd, unsigned long a
         // copy data from user mode *data
         if(copy_from_user(kernel_queue_data.data, user_queue_data.data, kernel_queue_data.length)){
             pr_info("error occure\n");
+            spin_unlock(&lock);
             return -1;
         }
 
@@ -69,6 +76,7 @@ static long int c_dev_ioctl(struct file *file, unsigned int cmd, unsigned long a
 
         if(queue.size <= 0){
             pr_info("underflow\n");
+            spin_unlock(&lock);
             return -1;
         }
 
@@ -78,11 +86,13 @@ static long int c_dev_ioctl(struct file *file, unsigned int cmd, unsigned long a
 
         if(copy_from_user(&user_queue_data, (struct data *)arg, sizeof(struct data))){
             pr_info("error occure\n");
+            spin_unlock(&lock);
             return -1;
         }
         // copy data into user space * data.
         if(copy_to_user(user_queue_data.data, content.data, user_queue_data.length)){
             pr_info("error occure\n");
+            spin_unlock(&lock);
             return -1;
         }
 
@@ -95,6 +105,7 @@ static long int c_dev_ioctl(struct file *file, unsigned int cmd, unsigned long a
         break;
     }
 
+    spin_unlock(&lock);
     return 0;
 }
 
@@ -118,6 +129,7 @@ struct file_operations fops = {
 static int start_module(void){
 
     pr_info("start module ....\n");
+    spin_lock_init(&lock);
     major_number = register_chrdev(0, "Dhruv_patel_1", &fops);
     pr_info("device ragistered major = %d\n", major_number);
     
