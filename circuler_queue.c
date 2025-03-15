@@ -24,7 +24,8 @@ static struct circuler_queue queue;
 
 static long int c_dev_ioctl(struct file *file, unsigned int cmd, unsigned long arg){
 
-    struct data queue_data;
+    struct data user_queue_data, kernel_queue_data;
+
     switch (cmd)
     {
     case SET_SIZE_OF_QUEUE:
@@ -38,7 +39,30 @@ static long int c_dev_ioctl(struct file *file, unsigned int cmd, unsigned long a
         break;
 
     case PUSH_DATA:
-       
+        if(queue.size >= queue.capacity){
+            pr_info("overflow\n");
+            return -1;
+        }
+        
+        pr_info("push data.\n");
+        if(copy_from_user(&user_queue_data, (struct data *)arg, sizeof(struct data))){
+            pr_info("error occure\n");
+            return -1;
+        }
+        
+        kernel_queue_data.length = user_queue_data.length;
+        kernel_queue_data.data = kmalloc(kernel_queue_data.length, GFP_KERNEL);
+
+        // copy data from user mode *data
+        if(copy_from_user(kernel_queue_data.data, user_queue_data.data, sizeof(struct data))){
+            pr_info("error occure\n");
+            return -1;
+        }
+
+        queue.rear = (queue.front + queue.size) % queue.capacity;
+        *(queue.buffer + queue.rear) = kernel_queue_data;
+        queue.size += 1;
+        pr_info("push_done front = %d, rear = %d, size = %d\n", queue.front, queue.rear, queue.size);
         break;
 
     case POP_DATA:
